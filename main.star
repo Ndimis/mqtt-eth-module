@@ -1,25 +1,24 @@
-def run(plan):
-    # Broker MQTT (Mosquitto)
-    plan.add_service(
-        name="mqtt-broker",
-        image="eclipse-mosquitto:2",
-        ports={"1883/tcp": 1883}
-    )
+load("kurtosis/module.lib.star", "plan", "ServiceConfig")
 
-    # Nœud Ethereum (Geth en mode dev ou PoA)
-    plan.add_service(
-        name="ethereum-node",
-        image="ethereum/client-go:stable",
+def run(plan: plan.Plan):
+    # MQTT Broker
+    mqtt_config = ServiceConfig(
+        container_image="eclipse-mosquitto:2",
+        ports={"1883": None}
+    )
+    plan.add_service(name="mqtt-broker", config=mqtt_config)
+
+    # Ethereum Node (Geth)
+    geth_config = ServiceConfig(
+        container_image="ethereum/client-go:stable",
         entrypoint=["geth", "--http", "--http.addr", "0.0.0.0", "--dev"],
-        ports={"8545/tcp": 8545}
+        ports={"8545": None}
     )
+    plan.add_service(name="ethereum-node", config=geth_config)
 
-    # Bridge MQTT vers Ethereum
-    plan.add_service(
-        name="mqtt-to-eth-writer",
-        image="mqtt-to-eth-writer:latest",
-        ports={"5000/tcp": 5000},
-        files={
-            "/app": plan.read_dir("services/mqtt-to-eth-writer")
-        }
+    # MQTT to Ethereum Writer (ton bridge)
+    writer_config = ServiceConfig(
+        container_image="mqtt-to-eth-writer:latest",
+        ports={"5000": None}
     )
+    plan.add_service(name="mqtt-to-eth-writer", config=writer_config)
